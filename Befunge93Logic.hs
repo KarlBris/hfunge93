@@ -1,12 +1,30 @@
 module Befunge93Logic where
 
 import Befunge93Data
+import Data.Char (ord, chr)
+import System.Random
 
-fungify :: String -> Maybe Grid
+
+step :: Program -> Int -> Program
+step (grid, gridSize, pcPos, pcDir, stack, mode) i = (grid, gridSize, step' pcPos pcDir gridSize i, pcDir, stack, mode)
+
+-- Wrapping step function
+step' :: PCPos -> PCDir -> GridSize -> Int -> PCPos
+step' (pcX, pcY) dir (xSize, ySize) length = 
+  case dir of
+    N -> (pcX, (pcY - length) `mod` ySize)
+    S -> (pcX, (pcY + length) `mod` ySize)
+    E -> ((pcX + length) `mod` xSize, pcY)
+    W -> ((pcX - length) `mod` xSize, pcY)
+
+getSymbol :: Grid -> PCPos -> Char
+getSymbol grid (x, y) = (grid!!y)!!x
+
+fungify :: String -> Maybe (Grid, GridSize)
 fungify file = 
   if (width > 80 || height > 25) 
     then Nothing 
-    else Just file''
+    else Just (file'', (width, height))
   where file'  = lines file
         width  = findLongestLine file'
         file'' = padLines file' width
@@ -20,3 +38,100 @@ padLines lines size = map (padLine size) lines
 
 padLine :: Int -> String -> String
 padLine size line = line ++ (replicate (size - (length line)) ' ')
+
+evaluate :: Program -> IO Program
+evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
+  let symb = getSymbol grid pcPos
+  --putStrLn $ "  [N]Symbol found at " ++ (show pcPos) ++ ": " ++ (show symb)
+  case symb of
+    ' ' -> return p
+    '0' -> return (grid, gridSize, pcPos, pcDir, push stack 0, Normal)
+    '1' -> return (grid, gridSize, pcPos, pcDir, push stack 1, Normal)
+    '2' -> return (grid, gridSize, pcPos, pcDir, push stack 2, Normal)
+    '3' -> return (grid, gridSize, pcPos, pcDir, push stack 3, Normal)
+    '4' -> return (grid, gridSize, pcPos, pcDir, push stack 4, Normal)
+    '5' -> return (grid, gridSize, pcPos, pcDir, push stack 5, Normal)
+    '6' -> return (grid, gridSize, pcPos, pcDir, push stack 6, Normal)
+    '7' -> return (grid, gridSize, pcPos, pcDir, push stack 7, Normal)
+    '8' -> return (grid, gridSize, pcPos, pcDir, push stack 8, Normal)
+    '9' -> return (grid, gridSize, pcPos, pcDir, push stack 9, Normal)
+    '+' -> do
+      let (stack', a) = pop stack
+      let (stack'', b) = pop stack'
+      return (grid, gridSize, pcPos, pcDir, push stack'' (a + b), Normal)
+    '-' -> do
+      let (stack', a) = pop stack
+      let (stack'', b) = pop stack'
+      return (grid, gridSize, pcPos, pcDir, push stack'' (b - a), Normal)
+    '*' -> do
+      let (stack', a) = pop stack
+      let (stack'', b) = pop stack'
+      return (grid, gridSize, pcPos, pcDir, push stack'' (a * b), Normal)
+    '/' -> do
+      let (stack', a) = pop stack
+      let (stack'', b) = pop stack'
+      return (grid, gridSize, pcPos, pcDir, push stack'' (b `div` a), Normal)
+    '%' -> do
+      let (stack', a) = pop stack
+      let (stack'', b) = pop stack'
+      return (grid, gridSize, pcPos, pcDir, push stack'' (b `mod` a), Normal)
+    '!' -> do 
+      let (stack', a) = pop stack
+      if (a == 0)
+        then return (grid, gridSize, pcPos, pcDir, push stack' 1, Normal)
+        else return (grid, gridSize, pcPos, pcDir, push stack' 0, Normal)
+    '`' -> do
+      let (stack', a) = pop stack
+      let (stack'', b) = pop stack'
+      if (b > a)
+        then return (grid, gridSize, pcPos, pcDir, push stack'' 1, Normal)
+        else return (grid, gridSize, pcPos, pcDir, push stack'' 0, Normal)
+    '>' -> return (grid, gridSize, pcPos, E, stack, Normal)
+    '<' -> return (grid, gridSize, pcPos, W, stack, Normal)
+    '^' -> return (grid, gridSize, pcPos, N, stack, Normal)
+    'v' -> return (grid, gridSize, pcPos, S, stack, Normal)
+    '?' -> do
+      i <- randomRIO (1, 4) :: IO Int
+      case i of
+        1 -> return (grid, gridSize, pcPos, E, stack, Normal)
+        2 -> return (grid, gridSize, pcPos, W, stack, Normal)
+        3 -> return (grid, gridSize, pcPos, N, stack, Normal)
+        4 -> return (grid, gridSize, pcPos, S, stack, Normal)
+    '_' -> do 
+      let (stack', a) = pop stack
+      if (a == 0)
+        then return (grid, gridSize, pcPos, E, stack', Normal)
+        else return (grid, gridSize, pcPos, W, stack', Normal)
+    '|' -> do 
+      let (stack', a) = pop stack
+      if (a == 0)
+        then return (grid, gridSize, pcPos, S, stack', Normal)
+        else return (grid, gridSize, pcPos, N, stack', Normal)
+    '"' -> do      
+      --putStrLn $ "  [N]In instruction \""
+      return (grid, gridSize, pcPos, pcDir, stack, String)
+    ':' -> return (grid, gridSize, pcPos, pcDir, dup stack, Normal)
+    '\\' -> return (grid, gridSize, pcPos, pcDir, swap stack, Normal)
+    '$' -> return (grid, gridSize, pcPos, pcDir, tail stack, Normal)
+    '.' -> do 
+      let (stack', a) = pop stack
+      putStr $ (show a) ++ " "
+      return (grid, gridSize, pcPos, pcDir, stack', Normal)
+    ',' -> do
+      let (stack', a) = pop stack
+      putStr $ (chr a):""
+      return (grid, gridSize, pcPos, pcDir, stack', Normal)
+    '#' -> error "# should already be handled"-----------
+    'p' -> undefined
+    'g' -> undefined
+    '&' -> undefined
+    '~' -> undefined
+    '@' -> error "@ should already be handled"-----------
+evaluate (grid, gridSize, pcPos, pcDir, stack, String) = do
+  let symb = getSymbol grid pcPos
+  --putStrLn $ "[S]Symbol found at " ++ (show pcPos) ++ ": " ++ (show symb)
+  if symb == '"' 
+    then return (grid, gridSize, pcPos, pcDir, stack, Normal)
+    else return (grid, gridSize, pcPos, pcDir, push stack (ord symb), String)
+
+
