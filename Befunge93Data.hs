@@ -1,14 +1,16 @@
 module Befunge93Data where
 
-data PCDir = N 
-           | S 
-           | E 
-           | W
-  deriving Show
+data PCDir
+  = N
+  | S
+  | E
+  | W
+  deriving (Show)
 
-data Mode = String
-          | Normal
-  deriving Show
+data Mode
+  = String
+  | Normal
+  deriving (Show)
 
 type PCPos = (Int, Int)
 
@@ -18,24 +20,35 @@ type Stack = [Int]
 
 type Grid = [[Char]]
 
-type Program = (Grid,
-                GridSize, 
-                PCPos, 
-                PCDir, 
-                Stack,
-                Mode)
+type Program =
+  ( Grid,
+    GridSize,
+    PCPos,
+    PCDir,
+    Stack,
+    Mode
+  )
 
 pop :: Stack -> (Stack, Int)
-pop (i:is) = (is, i)
-pop []   = ([], 0)
+pop (i : is) = (is, i)
+pop [] = ([], 0)
 
 push :: Stack -> Int -> Stack
-push s i = i:s
+push s i = i : s
 
 swap :: Stack -> Stack
-swap (a:(b:s)) = b:(a:s)
-swap _         = error "Swapping too small stack"
+swap (a : (b : s)) = b : (a : s)
+swap _ = error "Swapping too small stack"
 
 dup :: Stack -> Stack
-dup (a:as) = a:(a:as)
-dup _      = []
+dup (a : as) = a : (a : as)
+dup _ = []
+
+--get :: Grid -> GridSize -> (Int, Int) -> Char
+--get g (xSize, ySize) (xPos, yPos) = g!!
+
+put :: Grid -> (Int, Int) -> Char -> Grid
+put g (x, y) v = linesFront ++ (charsFront ++ v : charsBehind) : linesBehind
+  where
+    (linesFront, line : linesBehind) = splitAt y g
+    (charsFront, char : charsBehind) = splitAt x line

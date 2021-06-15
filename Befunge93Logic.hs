@@ -1,16 +1,15 @@
 module Befunge93Logic where
 
 import Befunge93Data
-import Data.Char (ord, chr)
+import Data.Char (chr, ord)
 import System.Random
-
 
 step :: Program -> Int -> Program
 step (grid, gridSize, pcPos, pcDir, stack, mode) i = (grid, gridSize, step' pcPos pcDir gridSize i, pcDir, stack, mode)
 
 -- Wrapping step function
 step' :: PCPos -> PCDir -> GridSize -> Int -> PCPos
-step' (pcX, pcY) dir (xSize, ySize) length = 
+step' (pcX, pcY) dir (xSize, ySize) length =
   case dir of
     N -> (pcX, (pcY - length) `mod` ySize)
     S -> (pcX, (pcY + length) `mod` ySize)
@@ -18,17 +17,18 @@ step' (pcX, pcY) dir (xSize, ySize) length =
     W -> ((pcX - length) `mod` xSize, pcY)
 
 getSymbol :: Grid -> PCPos -> Char
-getSymbol grid (x, y) = (grid!!y)!!x
+getSymbol grid (x, y) = (grid !! y) !! x
 
 fungify :: String -> Maybe (Grid, GridSize)
-fungify file = 
-  if (width > 80 || height > 25) 
-    then Nothing 
+fungify file =
+  if (width > 80 || height > 25)
+    then Nothing
     else Just (file'', (width, height))
-  where file'  = lines file
-        width  = findLongestLine file'
-        file'' = padLines file' width
-        height = length file'
+  where
+    file' = lines file
+    width = findLongestLine file'
+    file'' = padLines file' width
+    height = length file'
 
 findLongestLine :: [String] -> Int
 findLongestLine lines = maximum (map (length) lines)
@@ -42,7 +42,6 @@ padLine size line = line ++ (replicate (size - (length line)) ' ')
 evaluate :: Program -> IO Program
 evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
   let symb = getSymbol grid pcPos
-  --putStrLn $ "  [N]Symbol found at " ++ (show pcPos) ++ ": " ++ (show symb)
   case symb of
     ' ' -> return p
     '0' -> return (grid, gridSize, pcPos, pcDir, push stack 0, Normal)
@@ -75,7 +74,7 @@ evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
       let (stack', a) = pop stack
       let (stack'', b) = pop stack'
       return (grid, gridSize, pcPos, pcDir, push stack'' (b `mod` a), Normal)
-    '!' -> do 
+    '!' -> do
       let (stack', a) = pop stack
       if (a == 0)
         then return (grid, gridSize, pcPos, pcDir, push stack' 1, Normal)
@@ -97,41 +96,50 @@ evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
         2 -> return (grid, gridSize, pcPos, W, stack, Normal)
         3 -> return (grid, gridSize, pcPos, N, stack, Normal)
         4 -> return (grid, gridSize, pcPos, S, stack, Normal)
-    '_' -> do 
+    '_' -> do
       let (stack', a) = pop stack
       if (a == 0)
         then return (grid, gridSize, pcPos, E, stack', Normal)
         else return (grid, gridSize, pcPos, W, stack', Normal)
-    '|' -> do 
+    '|' -> do
       let (stack', a) = pop stack
       if (a == 0)
         then return (grid, gridSize, pcPos, S, stack', Normal)
         else return (grid, gridSize, pcPos, N, stack', Normal)
-    '"' -> do      
-      --putStrLn $ "  [N]In instruction \""
+    '"' -> do
       return (grid, gridSize, pcPos, pcDir, stack, String)
     ':' -> return (grid, gridSize, pcPos, pcDir, dup stack, Normal)
     '\\' -> return (grid, gridSize, pcPos, pcDir, swap stack, Normal)
     '$' -> return (grid, gridSize, pcPos, pcDir, tail stack, Normal)
-    '.' -> do 
+    '.' -> do
       let (stack', a) = pop stack
       putStr $ (show a) ++ " "
       return (grid, gridSize, pcPos, pcDir, stack', Normal)
     ',' -> do
       let (stack', a) = pop stack
-      putStr $ (chr a):""
+      putStr $ (chr a) : ""
       return (grid, gridSize, pcPos, pcDir, stack', Normal)
-    '#' -> error "# should already be handled"-----------
-    'p' -> undefined
-    'g' -> undefined
-    '&' -> undefined
-    '~' -> undefined
-    '@' -> error "@ should already be handled"-----------
+    '#' -> error "# should already be handled"
+    'p' -> do
+      let (stack', y) = pop stack
+      let (stack'', x) = pop stack'
+      let (stack''', val) = pop stack''
+      return (put grid (x, y) (chr val), gridSize, pcPos, pcDir, stack''', Normal)
+    'g' -> do
+      let (stack', y) = pop stack
+      let (stack'', x) = pop stack'
+      let stack''' = push stack'' (ord $ getSymbol grid (x, y))
+      return (grid, gridSize, pcPos, pcDir, stack''', Normal)
+    '&' -> do
+      line <- getLine
+      return (grid, gridSize, pcPos, pcDir, push stack (read line), Normal)
+    '~' -> do
+      char <- getChar
+      return (grid, gridSize, pcPos, pcDir, push stack (ord char), Normal)
+    '@' -> error "@ should already be handled"
+    _ -> error "Unknown instruction"
 evaluate (grid, gridSize, pcPos, pcDir, stack, String) = do
   let symb = getSymbol grid pcPos
-  --putStrLn $ "[S]Symbol found at " ++ (show pcPos) ++ ": " ++ (show symb)
-  if symb == '"' 
+  if symb == '"'
     then return (grid, gridSize, pcPos, pcDir, stack, Normal)
     else return (grid, gridSize, pcPos, pcDir, push stack (ord symb), String)
-
-
