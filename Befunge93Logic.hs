@@ -31,13 +31,13 @@ fungify file =
     height = length file'
 
 findLongestLine :: [String] -> Int
-findLongestLine lines = maximum (map (length) lines)
+findLongestLine lines = maximum (map length lines)
 
 padLines :: [String] -> Int -> [String]
 padLines lines size = map (padLine size) lines
 
 padLine :: Int -> String -> String
-padLine size line = line ++ (replicate (size - (length line)) ' ')
+padLine size line = line ++ replicate (size - length line) ' '
 
 evaluate :: Program -> IO Program
 evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
@@ -76,13 +76,13 @@ evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
       return (grid, gridSize, pcPos, pcDir, push stack'' (b `mod` a), Normal)
     '!' -> do
       let (stack', a) = pop stack
-      if (a == 0)
+      if a == 0
         then return (grid, gridSize, pcPos, pcDir, push stack' 1, Normal)
         else return (grid, gridSize, pcPos, pcDir, push stack' 0, Normal)
     '`' -> do
       let (stack', a) = pop stack
       let (stack'', b) = pop stack'
-      if (b > a)
+      if b > a
         then return (grid, gridSize, pcPos, pcDir, push stack'' 1, Normal)
         else return (grid, gridSize, pcPos, pcDir, push stack'' 0, Normal)
     '>' -> return (grid, gridSize, pcPos, E, stack, Normal)
@@ -98,12 +98,12 @@ evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
         4 -> return (grid, gridSize, pcPos, S, stack, Normal)
     '_' -> do
       let (stack', a) = pop stack
-      if (a == 0)
+      if a == 0
         then return (grid, gridSize, pcPos, E, stack', Normal)
         else return (grid, gridSize, pcPos, W, stack', Normal)
     '|' -> do
       let (stack', a) = pop stack
-      if (a == 0)
+      if a == 0
         then return (grid, gridSize, pcPos, S, stack', Normal)
         else return (grid, gridSize, pcPos, N, stack', Normal)
     '"' -> do
@@ -113,11 +113,11 @@ evaluate p@(grid, gridSize, pcPos, pcDir, stack, Normal) = do
     '$' -> return (grid, gridSize, pcPos, pcDir, tail stack, Normal)
     '.' -> do
       let (stack', a) = pop stack
-      putStr $ (show a) ++ " "
+      putStr $ show a ++ " "
       return (grid, gridSize, pcPos, pcDir, stack', Normal)
     ',' -> do
       let (stack', a) = pop stack
-      putStr $ (chr a) : ""
+      putStr $ chr a : ""
       return (grid, gridSize, pcPos, pcDir, stack', Normal)
     '#' -> error "# should already be handled"
     'p' -> do

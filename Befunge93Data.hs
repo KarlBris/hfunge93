@@ -44,9 +44,6 @@ dup :: Stack -> Stack
 dup (a : as) = a : (a : as)
 dup _ = []
 
---get :: Grid -> GridSize -> (Int, Int) -> Char
---get g (xSize, ySize) (xPos, yPos) = g!!
-
 put :: Grid -> (Int, Int) -> Char -> Grid
 put g (x, y) v = linesFront ++ (charsFront ++ v : charsBehind) : linesBehind
   where
